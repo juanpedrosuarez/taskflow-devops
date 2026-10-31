@@ -12,7 +12,15 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Fica na versão LTS do Node (22); versões ímpares não são LTS.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: terraform
     directory: /infra/terraform
     schedule:
       interval: weekly
+    ignore:
+      # Troca de versão principal do provider AWS exige revisão manual.
+      - dependency-name: hashicorp/aws
+        update-types: ["version-update:semver-major"]
