@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
 # Etapa 1: instala apenas as dependências de produção
-FROM node:22-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 
 # Etapa 2: imagem final enxuta, rodando como usuário sem privilégios
-FROM node:22-alpine AS runtime
+FROM node:25-alpine AS runtime
 ENV NODE_ENV=production \
     PORT=3000
 WORKDIR /app
