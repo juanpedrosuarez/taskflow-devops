@@ -1,0 +1,99 @@
+# Fase 1 - Integração Contínua
+# Roda a cada push e pull request: lint, testes automatizados com cobertura,
+# auditoria de dependências e validação dos scripts de Infraestrutura como Código.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint e testes (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Testes unitários e de integração
+        if: matrix.node != 22
+        run: npm test
+
+      - name: Testes com cobertura (mínimo de 80% das linhas)
+        if: matrix.node == 22
+        run: npm run test:coverage
+
+      - name: Publicar relatório de cobertura
+        if: matrix.node == 22
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: lcov.info
+
+  security:
+    name: Auditoria de dependências
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: npm audit (dependências de produção)
+        run: npm audit --omit=dev --audit-level=high
+
+  terraform:
+    name: Validar Terraform
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: Formatação
+        run: terraform fmt -check -recursive
+      - name: Init (sem backend remoto)
+        run: terraform init -backend=false
+      - name: Validate
+        run: terraform validate
+
+  docker:
+    name: Build da imagem Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (sem publicar)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

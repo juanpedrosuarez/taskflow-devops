@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+.git
+.github
+infra
+k8s
+monitoring
+scripts
+test
+coverage
+lcov.info
+*.md
+.env*

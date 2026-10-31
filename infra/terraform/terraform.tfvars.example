@@ -1,0 +1,7 @@
+# Copie para terraform.tfvars e ajuste. O arquivo terraform.tfvars não vai para o Git.
+aws_region       = "us-east-1"
+environment      = "staging"
+instance_type    = "t3.micro"
+app_image        = "ghcr.io/seu-usuario/taskflow-api:latest"
+ssh_public_key   = "ssh-ed25519 AAAA... deploy@taskflow"
+ssh_allowed_cidr = "203.0.113.10/32"

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Executado uma vez na criação da instância: instala Docker e sobe a aplicação.
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker git
+systemctl enable --now docker
+usermod -aG docker ec2-user
+
+# Plugin docker compose
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# Primeira execução da aplicação; os próximos deploys são feitos pelo pipeline de CD.
+docker run -d --name taskflow-api --restart unless-stopped \
+  -p 80:3000 \
+  --log-driver awslogs \
+  --log-opt awslogs-region=${aws_region} \
+  --log-opt awslogs-group=${log_group} \
+  ${app_image}

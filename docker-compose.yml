@@ -1,0 +1,49 @@
+# Uso:
+#   docker compose up -d --build                      -> só a aplicação (http://localhost:8080)
+#   docker compose --profile monitoring up -d         -> aplicação + Prometheus + Grafana
+#   IMAGE=ghcr.io/usuario/taskflow-api:sha docker compose up -d   -> imagem publicada pelo CD
+services:
+  app:
+    image: ${IMAGE:-taskflow-api:local}
+    build: .
+    container_name: taskflow-api
+    ports:
+      - "${APP_PORT:-8080}:3000"
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ["monitoring"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: ["monitoring"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - ./monitoring/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
