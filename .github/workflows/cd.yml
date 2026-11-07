@@ -63,7 +63,7 @@ jobs:
           docker rm -f smoke
 
       - name: Varredura de vulnerabilidades da imagem (Grype)
-        uses: anchore/scan-action@v6
+        uses: anchore/scan-action@v7
         with:
           image: ${{ steps.meta.outputs.image }}
           fail-build: true
